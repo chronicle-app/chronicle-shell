@@ -12,6 +12,7 @@ Gem::Specification.new do |spec|
   spec.description = "Extract shell command history from Bash or Zsh"
   spec.homepage = "https://github.com/chronicle-app/chronicle-shell"
   spec.required_ruby_version = ">= 2.7.0"
+  spec.license = "MIT"
 
   spec.metadata['allowed_push_host'] = "https://rubygems.org"
 

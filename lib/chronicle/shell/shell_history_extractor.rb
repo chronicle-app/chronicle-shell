@@ -74,6 +74,8 @@ module Chronicle
           end
         end
 
+        commands = commands.first(@config.limit) if @config.limit
+
         commands
       end
 

@@ -6,7 +6,7 @@ module Chronicle
       register_connector do |r|
         r.provider = 'shell'
         r.description = 'shell command history'
-        r.identifier = 'shell-history'
+        r.identifier = 'history'
       end
 
       setting :filename, default: ENV['HISTFILE']

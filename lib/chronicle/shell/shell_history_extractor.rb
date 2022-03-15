@@ -9,7 +9,7 @@ module Chronicle
         r.identifier = 'history'
       end
 
-      setting :filename, default: ENV['HISTFILE']
+      setting :input
       setting :shell, default: 'bash'
 
       BASH_TIMESTAMP_REGEX = /^\#(?<timestamp>[0-9]{10})/
@@ -37,7 +37,8 @@ module Chronicle
 
       # TODO: modularize the shell-specific stuff
       def history_filename
-        @config.filename || __send__("history_filename_default_#{@config.shell}")
+        # Ideally we coudl just use ENV['HISTFILE] but it's not available outside of Bash
+        @config.input.first || __send__("history_filename_default_#{@config.shell}")
       end
 
       def history_filename_default_bash

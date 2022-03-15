@@ -81,13 +81,15 @@ module Chronicle
       end
 
       def load_commands_from_bash
-        timestamp = nil
-        File.foreach(history_filename) do |line|
-          if match = line.scrub.match(BASH_TIMESTAMP_REGEX)
-            timestamp = Time.at(match[:timestamp].to_i)
-          elsif timestamp
-            command = { timestamp: timestamp, command: line.scrub.strip }
+        command = nil
+        File.readlines(history_filename).reverse_each do |line|
+          timestamp_line = line.scrub.match(BASH_TIMESTAMP_REGEX)
+          if timestamp_line && command
+            timestamp = Time.at(timestamp_line[:timestamp].to_i)
+            command = { timestamp: timestamp, command: command }
             yield command
+          else
+            command = line.scrub.strip
           end
         end
       end

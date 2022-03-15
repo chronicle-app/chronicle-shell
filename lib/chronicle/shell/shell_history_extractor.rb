@@ -38,7 +38,7 @@ module Chronicle
       # TODO: modularize the shell-specific stuff
       def history_filename
         # Ideally we coudl just use ENV['HISTFILE] but it's not available outside of Bash
-        @config.input.first || __send__("history_filename_default_#{@config.shell}")
+        @config.input&.first || __send__("history_filename_default_#{@config.shell}")
       end
 
       def history_filename_default_bash

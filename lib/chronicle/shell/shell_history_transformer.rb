@@ -6,7 +6,7 @@ module Chronicle
       register_connector do |r|
         r.provider = 'shell'
         r.description = 'a shell command'
-        r.identifier = 'history'
+        r.identifier = 'command'
       end
 
       def transform

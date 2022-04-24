@@ -8,7 +8,7 @@ Shell importer for [chronicle-etl](https://github.com/chronicle-app/chronicle-et
 - `shell:history` - Extract shell history from bash or zsh
 
 ### Transformers
-- `shell:history` - Turn a shell command into Chronicle Schema
+- `shell:command` - Turn a shell command into Chronicle Schema
 
 ## Usage and examples
 

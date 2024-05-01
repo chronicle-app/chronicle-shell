@@ -4,9 +4,10 @@ module Chronicle
   module Shell
     class ShellHistoryExtractor < Chronicle::ETL::Extractor
       register_connector do |r|
-        r.provider = 'shell'
+        r.source = :shell
+        r.type = :command
+        r.strategy = :local
         r.description = 'shell command history'
-        r.identifier = 'history'
       end
 
       setting :input
@@ -25,11 +26,11 @@ module Chronicle
       def extract
         @commands.each do |command|
           meta = {
-            username: username,
-            hostname: hostname,
+            username:,
+            hostname:,
             shell_name: @config.shell
           }
-          yield Chronicle::ETL::Extraction.new(data: command, meta: meta)
+          yield build_extraction(data: command, meta:)
         end
       end
 
@@ -42,11 +43,11 @@ module Chronicle
       end
 
       def history_filename_default_bash
-        File.join(Dir.home, ".bash_history")
+        File.join(Dir.home, '.bash_history')
       end
 
       def history_filename_default_zsh
-        File.join(Dir.home, ".zsh_history")
+        File.join(Dir.home, '.zsh_history')
       end
 
       def username
@@ -63,21 +64,33 @@ module Chronicle
       def load_commands
         commands = []
 
-        loader = "load_commands_from_#{@config.shell}"
-        __send__(loader) do |command|
-          next if @config.since && command[:timestamp] < @config.since
-          next if @config.until && command[:timestamp] > @config.until
-
-          if block_given?
-            yield command
-          else
-            commands << command
+        case @config.shell.to_sym
+        when :bash
+          load_commands_from_bash do |command|
+            process_command(command, commands)
           end
+        when :zsh
+          load_commands_from_zsh do |command|
+            process_command(command, commands)
+          end
+        else
+          raise "Unknown loader: #{@config.shell}"
         end
 
         commands = commands.first(@config.limit) if @config.limit
 
         commands
+      end
+
+      def process_command(command, commands)
+        return if @config.since && command[:timestamp] < @config.since
+        return if @config.until && command[:timestamp] > @config.until
+
+        if block_given?
+          yield command
+        else
+          commands << command
+        end
       end
 
       def load_commands_from_bash
@@ -86,7 +99,7 @@ module Chronicle
           timestamp_line = line.scrub.match(BASH_TIMESTAMP_REGEX)
           if timestamp_line && command
             timestamp = Time.at(timestamp_line[:timestamp].to_i)
-            command = { timestamp: timestamp, command: command }
+            command = { timestamp:, command: }
             yield command
           else
             command = line.scrub.strip

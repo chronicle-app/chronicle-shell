@@ -1,59 +1,64 @@
 require 'chronicle/etl'
+require 'chronicle/models'
 
 module Chronicle
-  module Shell 
+  module Shell
     class ShellHistoryTransformer < Chronicle::ETL::Transformer
       register_connector do |r|
-        r.provider = 'shell'
+        r.source = :shell
+        r.type = :command
+        r.strategy = :local
         r.description = 'a shell command'
-        r.identifier = 'command'
+        r.from_schema = :extraction
+        r.to_schema = :chronicle
       end
 
-      def transform
-        @command = @extraction.data
-        build_commanded
-      end
+      def transform(record)
+        username = record.extraction.meta[:username]
+        hostname = record.extraction.meta[:hostname]
+        shell_name = record.extraction.meta[:shell_name]
+        timestamp = record.data[:timestamp]
+        command = record.data[:command]
 
-      def id
-      end
-
-      def timestamp
-        @command[:timestamp]
+        build_command(username:, hostname:, command:, shell_name:,
+          timestamp:)
       end
 
       private
 
-      def build_commanded
-        record = ::Chronicle::ETL::Models::Activity.new
-        record.verb = 'commanded'
-        record.end_at = timestamp
-        record.provider = @extraction.meta[:shell_name]
-        record.dedupe_on << [:verb, :end_at, :provider]
-        record.involved = build_command
-        record.actor = build_actor
-        record
+      def build_command(username:, hostname:, command:, shell_name:, timestamp:)
+        Chronicle::Models::ControlAction.new do |r|
+          r.source = shell_name
+          r.result = build_command_result(command)
+          r.agent = build_agent(username, hostname)
+          r.end_time = timestamp
+          # r.object = build_host
+          r.dedupe_on << %i[source type end_time]
+        end
       end
 
-      def build_command
-        record = ::Chronicle::ETL::Models::Entity.new
-        record.represents = 'command'
-        record.provider = @extraction.meta[:shell_name]
-        record.body = @command[:command]
-        record.dedupe_on << [:body, :provider, :represents]
-        record
+      def build_command_result(text)
+        Chronicle::Models::ComputerCommand.new do |r|
+          r.text = text
+          r.source = 'system'
+          r.dedupe_on << %i[source text type]
+        end
       end
 
-      def build_actor
-        record = ::Chronicle::ETL::Models::Entity.new
-        record.represents = 'identity'
-        record.provider = 'system'
-        record.slug = build_user_slug
-        record.dedupe_on << [:represents, :provider, :slug]
-        record
+      def build_agent(username, hostname)
+        Chronicle::Models::Person.new do |r|
+          r.source = 'system'
+          r.slug = build_user_slug(username, hostname)
+          r.dedupe_on << %i[source slug type]
+        end
       end
 
-      def build_user_slug
-        "#{@extraction.meta[:username]}@#{@extraction.meta[:hostname]}"
+      # TODO: implement this.
+      # TODO: figure out how to represent the host in schema
+      def build_host(hostname); end
+
+      def build_user_slug(username, hostname)
+        "#{username}@#{hostname}"
       end
     end
   end
